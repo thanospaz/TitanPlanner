@@ -496,7 +496,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             }
             else
             {
-                CustomMessageBox.Show("Parameter " + param_name + " not found");
+                Common.MessageShowAgain("Parameter not found", "Parameter " + param_name + " not found");
                 return false;
             }
         }

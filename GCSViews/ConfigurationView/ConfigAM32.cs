@@ -42,7 +42,7 @@ namespace MissionPlanner.GCSViews.ConfigurationView
             {
                 _hasNavigated = true;
 
-                CustomMessageBox.Show("Make sure to disconnect from Mission Planner before using AM32 configurator.", "AM32 Configurator");
+                Common.MessageShowAgain("AM32 Configurator", "Make sure to disconnect from Mission Planner before using AM32 configurator.");
 
                 try
                 {

@@ -578,7 +578,7 @@ namespace MissionPlanner.Controls
                 {
                     list += item + " ";
                 }
-                CustomMessageBox.Show("Missing " + missed + " params\n" + list, "No matching Params", MessageBoxButtons.OK);
+                Common.MessageShowAgain("No matching Params", "Missing " + missed + " params\n" + list);
             }
         }
         private void OnParamsOnSortCompare(object sender, DataGridViewSortCompareEventArgs args)
