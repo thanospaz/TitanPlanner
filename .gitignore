@@ -43,8 +43,10 @@ docs/
 *.pem
 *.key
 /.vscode
+/.idea
 obj2/
 obj3/
 
 /.claude
 Msi/drivers.wxs
+/CLAUDE.md

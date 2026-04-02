@@ -126,6 +126,7 @@ namespace MissionPlanner.GCSViews
         private DateTime mapupdate = DateTime.MinValue;
         private string mobileGpsLog = string.Empty;
         private PointLatLng MouseDownStart;
+        private Point MouseDownStartLocal;
         private PointLatLngAlt mouseposdisplay = new PointLatLngAlt(0, 0);
         private WPOverlay wpOverlay;
         private WPOverlay2 wpOverlay2;
@@ -1071,7 +1072,9 @@ namespace MissionPlanner.GCSViews
                     if (now == null || next == null)
                         continue;
 
-                    var mid = new PointLatLngAlt((now.Lat + next.Lat) / 2, (now.Lng + next.Lng) / 2, 0);
+                    var p1 = MainMap.FromLatLngToLocal(now);
+                    var p2 = MainMap.FromLatLngToLocal(next);
+                    var mid = new PointLatLngAlt(MainMap.FromLocalToLatLng((int)((p1.X + p2.X) / 2), (int)((p1.Y + p2.Y) / 2)));
 
                     var pnt = new GMapMarkerPlus(mid);
                     pnt.Tag = new midline() {now = now, next = next};
@@ -1540,8 +1543,10 @@ namespace MissionPlanner.GCSViews
                             if (now == null || next == null)
                                 continue;
 
-                            var mid = new PointLatLngAlt((now.Lat + next.Lat) / 2, (now.Lng + next.Lng) / 2,
-                                (now.Alt + next.Alt) / 2);
+                            var p1 = MainMap.FromLatLngToLocal(now);
+                            var p2 = MainMap.FromLatLngToLocal(next);
+                            var mid = new PointLatLngAlt(MainMap.FromLocalToLatLng((int)((p1.X + p2.X) / 2), (int)((p1.Y + p2.Y) / 2)));
+                            mid.Alt = (now.Alt + next.Alt) / 2;
 
                             var pnt = new GMapMarkerPlus(mid);
                             pnt.Tag = new midline() {now = now, next = next};
@@ -1624,7 +1629,9 @@ namespace MissionPlanner.GCSViews
                                 if (now == null || next == null)
                                     continue;
 
-                                var mid = new PointLatLngAlt((now.Lat + next.Lat) / 2, (now.Lng + next.Lng) / 2, 0);
+                                var p1 = MainMap.FromLatLngToLocal(now);
+                                var p2 = MainMap.FromLatLngToLocal(next);
+                                var mid = new PointLatLngAlt(MainMap.FromLocalToLatLng((int)((p1.X + p2.X) / 2), (int)((p1.Y + p2.Y) / 2)));
 
                                 var pnt = new GMapMarkerPlus(mid);
                                 pnt.Tag = new midline() {now = now, next = next};
@@ -7454,6 +7461,7 @@ Column 1: Field type (RALLY is the only one at the moment -- may have RALLY_LAND
                 return;
 
             MouseDownStart = MainMap.FromLocalToLatLng(e.X, e.Y);
+            MouseDownStartLocal = e.Location;
 
             //   Console.WriteLine("MainMap MD");
 
@@ -7623,16 +7631,34 @@ Column 1: Field type (RALLY is the only one at the moment -- may have RALLY_LAND
                 }
                 else // left click pan
                 {
-                    double latdif = MouseDownStart.Lat - point.Lat;
-                    double lngdif = MouseDownStart.Lng - point.Lng;
-
                     try
                     {
                         lock (thisLock)
                         {
                             if (!isMouseClickOffMenu)
-                                MainMap.Position = new PointLatLng(center.Position.Lat + latdif,
-                                    center.Position.Lng + lngdif);
+                            {
+                                // incremental delta avoids direction lock when crossing pole singularities
+                                int dx = e.X - MouseDownStartLocal.X;
+                                int dy = e.Y - MouseDownStartLocal.Y;
+
+                                if (dx == 0 && dy == 0)
+                                    return;
+
+                                double absLat = Math.Abs(MainMap.Position.Lat);
+
+                                PointLatLng newCenter = MainMap.FromLocalToLatLng(
+                                    MainMap.Width / 2 - dx,
+                                    MainMap.Height / 2 - dy);
+
+                                if (!double.IsNaN(newCenter.Lat) && !double.IsNaN(newCenter.Lng) &&
+                                    !double.IsInfinity(newCenter.Lat) && !double.IsInfinity(newCenter.Lng))
+                                {
+                                    MainMap.Position = newCenter;
+                                }
+
+                                // key part: consume this step so next move is relative to current state
+                                MouseDownStartLocal = e.Location;
+                            }
                         }
                     }
                     catch (Exception ex)
